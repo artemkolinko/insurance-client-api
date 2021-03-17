@@ -41,7 +41,7 @@ client
       `CREATE TABLE IF NOT EXISTS people.${clientTable} (id uuid PRIMARY KEY, name text, package int, balance float);`
     );
   })
-  .then((result) => {
+  .then(() => {
     console.log('Table exist');
   })
   .catch((err) => console.log(err));
