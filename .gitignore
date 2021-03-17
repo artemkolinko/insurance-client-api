@@ -1,0 +1,14 @@
+# dotenv environment variables file
+.env
+
+# Dependency directories
+node_modules/
+
+# Optional eslint cache
+.eslintcache
+
+# For MacOs
+.DS_Store
+
+# file from datastax astra
+secure-connect-softinsurance.zip
