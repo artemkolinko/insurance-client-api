@@ -9,6 +9,3 @@ node_modules/
 
 # For MacOs
 .DS_Store
-
-# file from datastax astra
-secure-connect-softinsurance.zip
