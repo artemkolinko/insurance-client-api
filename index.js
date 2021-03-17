@@ -24,7 +24,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // Create cassandra client (driver)
 const client = new cassandra.Client({
   cloud: {
-    secureConnectBundle: './secure-connect-SoftInsurance.zip',
+    secureConnectBundle: `${__dirname}/secure-connect-softinsurance.zip`,
   },
   credentials: {
     username: process.env.DB_USER,
