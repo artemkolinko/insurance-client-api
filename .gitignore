@@ -9,3 +9,6 @@ node_modules/
 
 # For MacOs
 .DS_Store
+
+# misc
+.assets
