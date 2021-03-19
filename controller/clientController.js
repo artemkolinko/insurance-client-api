@@ -10,7 +10,7 @@ const insert = (table) =>
 const getClients = (req, res) => {
   clientsDb
     .execute(selectAll(clientTable))
-    .then((result) => res.status(201).send(result.rows))
+    .then((result) => res.status(200).send(result.rows))
     .catch((err) => res.status(500).json({ err }));
 };
 
@@ -22,7 +22,20 @@ const addClient = (req, res) => {
   clientsDb
     .execute(insert(clientTable), params, { prepare: true })
     .then(() => res.status(201).json({ id }))
-    .catch((err) => res.status(500).json(err));
+    .catch((err) => res.status(500).json({ err }));
+};
+
+const getClient = (req, res) => {
+  const getClientById = `SELECT * FROM ${clientTable} WHERE id = ?`;
+
+  clientsDb
+    .execute(getClientById, [req.params.id], { prepare: true })
+    .then((result) => {
+      res.status(200).json(result.rows[0]);
+    })
+    .catch((err) => {
+      res.status(404).json({ err });
+    });
 };
 
 const editClient = (req, res) => {
@@ -35,10 +48,23 @@ const editClient = (req, res) => {
   clientsDb
     .execute(editClientName, params, { prepare: true })
     .then(() => {
-      res.json({ msg: 'Client name changed!' });
-      console.log('Client name changed!');
+      res.status(200).json({ msg: 'Client name changed!' });
     })
-    .catch((err) => res.status(500).json(err));
+    .catch((err) => res.status(500).json({ err }));
 };
 
-module.exports = { getClients, addClient, editClient };
+const deleteClient = (req, res) => {
+  const { id } = req.params;
+  const deleteClientById = `DELETE FROM ${clientTable} WHERE id = ?`;
+
+  clientsDb
+    .execute(deleteClientById, [id], { prepare: true })
+    .then(() => {
+      res.status(200).json({
+        msg: 'Client saccessfuly deleted!',
+      });
+    })
+    .catch((err) => res.status(500).json({ err }));
+};
+
+module.exports = { getClients, addClient, editClient, getClient, deleteClient };

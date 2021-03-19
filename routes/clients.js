@@ -6,7 +6,8 @@ router.route('/').get(controller.getClients).post(controller.addClient);
 
 router
   .route('/:id')
-  // .get(controller.getClient);
-  .patch(controller.editClient);
+  .get(controller.getClient)
+  .patch(controller.editClient)
+  .delete(controller.deleteClient);
 
 module.exports = router;
