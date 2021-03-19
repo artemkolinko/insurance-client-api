@@ -1,5 +1,5 @@
 const { types } = require('cassandra-driver');
-const clientsDb = require('../models/clients');
+const clientsDb = require('../models/Clients');
 
 const clientTable = process.env.DB_CLIENT_TABLE;
 
