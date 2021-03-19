@@ -61,7 +61,7 @@ const deleteClient = (req, res) => {
     .execute(deleteClientById, [id], { prepare: true })
     .then(() => {
       res.status(200).json({
-        msg: 'Client saccessfuly deleted!',
+        msg: 'Client saccessfuly deleted!'
       });
     })
     .catch((err) => res.status(500).json({ err }));
