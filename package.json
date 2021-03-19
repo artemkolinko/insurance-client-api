@@ -2,9 +2,9 @@
   "name": "client-api",
   "version": "1.0.0",
   "description": "Client API for soft ensurance",
-  "main": "app.js",
   "scripts": {
-    "start": "nodemon ./bin/www"
+    "start": "node ./bin/www",
+    "dev": "nodemon ./bin/www"
   },
   "keywords": [
     "api",
