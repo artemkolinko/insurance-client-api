@@ -1,17 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const Clients = require('../models/Clients');
-const database = new Clients();
+const controller = require('../controller/clientController');
 
-/* GET list of Clients */
-router.get('/', async (req, res) => {
-  const list = await database.getClientsList();
-  res.send(list);
-});
-
-router.post('/', async (req, res) => {
-  const clientId = await database.addClient(req.body.name);
-  res.status(201).json({ clientId });
-});
+router.route('/')
+  .get(controller.getAll)
+  .post(controller.addClient);
 
 module.exports = router;

@@ -1,86 +1,32 @@
 const path = require('path');
-const Cassandra = require('cassandra-driver');
+const { Client } = require('cassandra-driver');
+const clientTable = process.env.DB_CLIENT_TABLE;
 
-class Clients {
-  constructor(data) {
-    if (Clients.exists) {
-      return Clients.instance;
-    }
-    Clients.instance = this;
-    Clients.exists = true;
-    this.table = process.env.DB_CLIENT_TABLE;
+const clientsDb = new Client({
+  cloud: {
+    secureConnectBundle: path.resolve(__dirname, '../secure-connect-softinsurance.zip')
+  },
+  credentials: {
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD
+  },
+  keyspace: process.env.DB_KEYSPACE
+});
 
-    this.init();
-  }
+clientsDb
+  .connect()
+  .then(() => {
+    console.warn('Connected to DataStax Astra');
+    clientsDb.execute(
+          `CREATE TABLE IF NOT EXISTS ${clientTable} (id uuid PRIMARY KEY, name text, package int, balance float);`
+    );
+  })
+  .then(() => {
+    console.warn('Table exist');
+  })
+  .catch((err) => console.warn(err));
 
-  init() {
-    this.client = new Cassandra.Client({
-      cloud: {
-        secureConnectBundle: path.resolve(__dirname, '../secure-connect-softinsurance.zip')
-      },
-      credentials: {
-        username: process.env.DB_USER,
-        password: process.env.DB_PASSWORD
-      },
-      keyspace: process.env.DB_KEYSPACE
-    });
-    this.connect();
-  }
-
-  connect() {
-    this.client
-      .connect()
-      .then(() => {
-        console.warn('Connected to DataStax Astra');
-        this.client.execute(
-          `CREATE TABLE IF NOT EXISTS ${this.table} (id uuid PRIMARY KEY, name text, package int, balance float);`
-        );
-      })
-      .then(() => {
-        console.warn('Table exist');
-      })
-      .catch((err) => console.warn(err));
-  }
-
-  async getClientsList() {
-    const query = `SELECT * FROM ${this.table}`;
-    return new Promise((resolve, reject) => {
-      this.client.execute(query, (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(result.rows);
-        }
-      });
-    });
-  }
-
-  async addClient(name) {
-    const id = Cassandra.types.timeuuid();
-    const balance = 0;
-    const params = [id, name, balance];
-    const clientInsert = `INSERT INTO ${this.table} (id, name, balance) VALUES (?, ?, ?)`;
-    return new Promise((resolve, reject) => {
-      this.client.execute(clientInsert, params, { prepare: true },
-        (err, result) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(id);
-          }
-        });
-    });
-  }
-}
-
-module.exports = Clients;
-
-// /api/clients
-// app
-//   .route('/')
-//   // Get all clients
-//   .get((req, res) => {
-//     const select = `SELECT * FROM ${clientTable}`;
+module.exports = clientsDb;
 
 // поиск по полю, которое не является ключом
 // SELECT * FROM developers WHERE salary > 3500 ALLOW FILTERING;
@@ -94,30 +40,6 @@ module.exports = Clients;
 //       res.status(404).send({ msg: err });
 //     });
 // })
-// Greate new client
-// .post((req, res) => {
-// get client name
-// const { name } = req.body;
-// создаем id клиента
-//   const id = cassandra.types.timeuuid();
-//   const balance = 0;
-
-//   const addClient = `INSERT INTO ${clientTable} (id, name, balance) VALUES (?, ?, ?)`;
-//   const params = [id, name, balance];
-//   client
-//     .execute(addClient, params, { prepare: true })
-//     .then((result) => {
-//       res.status(201).json({
-//         id,
-//         name,
-//         balance
-//       });
-//       console.log('Client added!');
-//     })
-//     .catch((err) => {
-//       console.log(err);
-//     });
-// });
 
 // /api/clients/:id
 // app
