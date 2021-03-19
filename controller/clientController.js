@@ -25,4 +25,20 @@ const addClient = (req, res) => {
     .catch((err) => res.status(500).json(err));
 };
 
-module.exports = { getClients, addClient };
+const editClient = (req, res) => {
+  const { id } = req.params;
+  // get client new name
+  const { name } = req.body;
+
+  const editClientName = `UPDATE ${clientTable} SET name = ? WHERE id = ?`;
+  const params = [name, id];
+  clientsDb
+    .execute(editClientName, params, { prepare: true })
+    .then(() => {
+      res.json({ msg: 'Client name changed!' });
+      console.log('Client name changed!');
+    })
+    .catch((err) => res.status(500).json(err));
+};
+
+module.exports = { getClients, addClient, editClient };
