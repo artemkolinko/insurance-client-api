@@ -5,7 +5,6 @@ const clientsRouter = require('./routes/clients');
 
 const PORT = process.env.PORT || 3000;
 
-
 const app = express();
 
 app.use(express.json());
