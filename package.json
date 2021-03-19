@@ -2,7 +2,7 @@
   "name": "client-api",
   "version": "1.0.0",
   "description": "Client API for soft ensurance",
-  "main": "www.js",
+  "main": "app.js",
 
   "scripts": {
     "start": "node app.js",
