@@ -1,11 +1,64 @@
 const { types } = require('cassandra-driver');
 const clientsDb = require('../models/Clients');
+const { getProductsCost, createPackage } = require('../controller/catalogController');
 
 const clientTable = process.env.DB_CLIENT_TABLE;
 
-const selectAll = (table) => `SELECT * FROM ${table}`;
-const insert = (table) =>
-  `INSERT INTO ${table} (id, name, balance) VALUES (?, ?, ?)`;
+const selectById = table => `SELECT * FROM ${clientTable} WHERE id = ?;`;
+// UPDATE clients SET balance = 10000.12 WHERE id = 76ebb3a0-87de-11eb-bb03-652bfc2b4dab;
+const selectAll = table => `SELECT * FROM ${table};`;
+const insert = table => `INSERT INTO ${table} (id, name, balance) VALUES (?, ?, ?);`;
+const updateById = table => `UPDATE ${table} SET balance = ? WHERE id = ?;`;
+
+const getClientById = (id, table = clientTable) => clientsDb.execute(selectById(table), [id], { prepare: true });
+const updateBalance = (id, balance, table = clientTable) => clientsDb.execute(updateById(table), [balance, id], { prepare: true });
+
+const topupBalance = async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    const result = await getClientById(req.params.id);
+    const client = result.rows[0];
+
+    let { balance } = client;
+    balance += amount;
+
+    await updateBalance(client.id, balance);
+    res.send({ balance });
+  } catch (err) {
+    if (!req.body.amount || req.body.amount <= 0) {
+      res.sendStatus(400);
+    } else {
+      res.status(500).send(err);
+    }
+  }
+};
+
+const buyPackage = async (req, res) => {
+  let diff = null;
+  if (!req.body.ids) {
+    return res.sendStatus(400);
+  }
+
+  try {
+    const { ids } = req.body;
+    const result = await getClientById(req.params.id);
+    const client = result.rows[0];
+    let response = await getProductsCost({ ids });
+    let data = await response.data;
+    diff = client.balance - data.cost;
+    if (diff < 0 || !diff) { throw new Error('Not enought balance'); }
+    response = await createPackage({ ids });
+    data = await response.data;
+    res.send(data);
+  } catch (err) {
+    if (diff < 0 || !diff) {
+      res.status(402).json({ error: err.message });
+    } else {
+      res.status(404).json({ error: err.message });
+    }
+  }
+};
 
 const getClients = (req, res) => {
   clientsDb
@@ -67,4 +120,4 @@ const deleteClient = (req, res) => {
     .catch((err) => res.status(500).json({ err }));
 };
 
-module.exports = { getClients, addClient, editClient, getClient, deleteClient };
+module.exports = { topupBalance, buyPackage, getClients, addClient, editClient, getClient, deleteClient };
