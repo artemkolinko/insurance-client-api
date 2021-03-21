@@ -1,17 +1,26 @@
 const { types } = require('cassandra-driver');
 const clientsDb = require('../models/Clients');
-const { getProductsCost, createPackage } = require('../controller/catalogController');
+const {
+  getProductsCost,
+  createPackage,
+} = require('../controller/catalogController');
 
 const clientTable = process.env.DB_CLIENT_TABLE;
 
-const selectById = table => `SELECT * FROM ${clientTable} WHERE id = ?;`;
+const selectById = (table) => `SELECT * FROM ${clientTable} WHERE id = ?;`;
 // UPDATE clients SET balance = 10000.12 WHERE id = 76ebb3a0-87de-11eb-bb03-652bfc2b4dab;
-const selectAll = table => `SELECT * FROM ${table};`;
-const insert = table => `INSERT INTO ${table} (id, name, balance) VALUES (?, ?, ?);`;
-const updateById = (table, field) => `UPDATE ${table} SET ${field} = ? WHERE id = ?;`;
+const selectAll = (table) => `SELECT * FROM ${table};`;
+const selectByName = (table, name) =>
+  `SELECT * FROM ${table} WHERE name = '${name}' ALLOW FILTERING`;
+const insert = (table) =>
+  `INSERT INTO ${table} (id, name, balance) VALUES (?, ?, ?);`;
+const updateById = (table, field) =>
+  `UPDATE ${table} SET ${field} = ? WHERE id = ?;`;
 
-const getClientById = (id, table = clientTable) => clientsDb.execute(selectById(table), [id], { prepare: true });
-const updateClient = (id, balance, field, table = clientTable) => clientsDb.execute(updateById(table, field), [balance, id], { prepare: true });
+const getClientById = (id, table = clientTable) =>
+  clientsDb.execute(selectById(table), [id], { prepare: true });
+const updateClient = (id, balance, field, table = clientTable) =>
+  clientsDb.execute(updateById(table, field), [balance, id], { prepare: true });
 
 const topupBalance = async (req, res) => {
   try {
@@ -47,7 +56,9 @@ const buyPackage = async (req, res) => {
     let response = await getProductsCost({ ids });
     let data = await response.data;
     diff = client.balance - data.cost;
-    if (diff < 0 || !diff) { throw new Error('Not enought balance'); }
+    if (diff < 0 || !diff) {
+      throw new Error('Not enought balance');
+    }
     response = await createPackage({ ids });
     data = await response.data;
     const packageId = data.id;
@@ -65,10 +76,20 @@ const buyPackage = async (req, res) => {
 };
 
 const getClients = (req, res) => {
-  clientsDb
-    .execute(selectAll(clientTable))
-    .then((result) => res.status(200).send(result.rows))
-    .catch((err) => res.status(500).json({ err }));
+  // Get name from query string
+  const name = req.query.name ? req.query.name.trim() : null;
+  if (name) {
+    // SELECT * FROM developers WHERE name = 'name' ALLOW FILTERING;
+    clientsDb
+      .execute(selectByName(clientTable, name))
+      .then((result) => res.status(200).send(result.rows))
+      .catch((err) => res.status(500).json({ err }));
+  } else {
+    clientsDb
+      .execute(selectAll(clientTable))
+      .then((result) => res.status(200).send(result.rows))
+      .catch((err) => res.status(500).json({ err }));
+  }
 };
 
 const addClient = (req, res) => {
@@ -118,10 +139,18 @@ const deleteClient = (req, res) => {
     .execute(deleteClientById, [id], { prepare: true })
     .then(() => {
       res.status(200).json({
-        msg: 'Client saccessfuly deleted!'
+        msg: 'Client saccessfuly deleted!',
       });
     })
     .catch((err) => res.status(500).json({ err }));
 };
 
-module.exports = { topupBalance, buyPackage, getClients, addClient, editClient, getClient, deleteClient };
+module.exports = {
+  topupBalance,
+  buyPackage,
+  getClients,
+  addClient,
+  editClient,
+  getClient,
+  deleteClient,
+};
