@@ -52,6 +52,7 @@ const buyPackage = async (req, res) => {
     data = await response.data;
     const packageId = data.id;
     console.log(packageId);
+    await updateClient(client.id, diff, 'balance');
     await updateClient(client.id, packageId, 'package');
     res.send(data);
   } catch (err) {
