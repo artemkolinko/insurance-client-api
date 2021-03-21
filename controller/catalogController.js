@@ -35,10 +35,16 @@ const getPackages = async (req, res) => {
   }
 };
 
-const getPackageInfo = (req, res) => {
-  const { id } = req.params;
-  console.warn('getPackageInfo :', id);
-  res.status(200).json({ id });
+const getPackageInfo = async (req, res) => {
+  try {
+    const {id} = req.params;
+    console.warn('getPackageInfo :', id);
+    const response = await axiosGet(`${entity.packages}/${id}/info`);
+    const data = await response.data;
+    res.status(200).send(data);
+  } catch (err) {
+    res.status(500).send(err);
+  }
 };
 
 module.exports = { getProducts, getProductsCost, createPackage, getPackages, getPackageInfo };
