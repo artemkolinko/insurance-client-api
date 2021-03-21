@@ -8,10 +8,10 @@ const selectById = table => `SELECT * FROM ${clientTable} WHERE id = ?;`;
 // UPDATE clients SET balance = 10000.12 WHERE id = 76ebb3a0-87de-11eb-bb03-652bfc2b4dab;
 const selectAll = table => `SELECT * FROM ${table};`;
 const insert = table => `INSERT INTO ${table} (id, name, balance) VALUES (?, ?, ?);`;
-const updateById = table => `UPDATE ${table} SET balance = ? WHERE id = ?;`;
+const updateById = (table, field) => `UPDATE ${table} SET ${field} = ? WHERE id = ?;`;
 
 const getClientById = (id, table = clientTable) => clientsDb.execute(selectById(table), [id], { prepare: true });
-const updateBalance = (id, balance, table = clientTable) => clientsDb.execute(updateById(table), [balance, id], { prepare: true });
+const updateClient = (id, balance, field, table = clientTable) => clientsDb.execute(updateById(table, field), [balance, id], { prepare: true });
 
 const topupBalance = async (req, res) => {
   try {
@@ -23,7 +23,7 @@ const topupBalance = async (req, res) => {
     let { balance } = client;
     balance += amount;
 
-    await updateBalance(client.id, balance);
+    await updateClient(client.id, balance, 'balance');
     res.send({ balance });
   } catch (err) {
     if (!req.body.amount || req.body.amount <= 0) {
@@ -50,6 +50,9 @@ const buyPackage = async (req, res) => {
     if (diff < 0 || !diff) { throw new Error('Not enought balance'); }
     response = await createPackage({ ids });
     data = await response.data;
+    const packageId = data.id;
+    console.log(packageId);
+    await updateClient(client.id, packageId, 'package');
     res.send(data);
   } catch (err) {
     if (diff < 0 || !diff) {
