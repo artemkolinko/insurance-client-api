@@ -28,7 +28,6 @@ const topupBalance = async (id, amount) => {
   try {
     const result = await clients.getClientById(id);
     const client = result.rows[0];
-    console.log(client);
     let { balance } = client;
     balance = balance + amount;
     await clients.updateClient(client.id, balance, 'balance');
