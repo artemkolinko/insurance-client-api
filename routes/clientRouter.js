@@ -13,10 +13,14 @@ router.route('/:id')
 
 router
   .route('/:id/buy-package')
-  .patch(controller.buyPackage);
+  .patch(controller.buyPackageHandler);
 
 router
   .route('/:id/topup-balance')
-  .patch(controller.topupBalance);
+  .patch(controller.topupBalanceHandler);
+
+router
+  .route('/:id/info')
+  .get(controller.getClientInfo);
 
 module.exports = router;
