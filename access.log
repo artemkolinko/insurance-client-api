@@ -81,3 +81,4 @@
 ::1 - - [23/Mar/2021:01:31:39 +0000] "GET /api/v1/clients/e74e8560-8b66-11eb-b9f4-4635900e04a9/info HTTP/1.1" 500 2
 ::1 - - [23/Mar/2021:01:34:14 +0000] "GET /api/v1/clients/e74e8560-8b66-11eb-b9f4-4635900e04a9/info HTTP/1.1" 500 2
 ::1 - - [23/Mar/2021:01:36:08 +0000] "GET /api/v1/clients/e74e8560-8b66-11eb-b9f4-4635900e04a9/info HTTP/1.1" 500 2
+::1 - - [23/Mar/2021:01:37:57 +0000] "GET /api/v1/clients/e74e8560-8b66-11eb-b9f4-4635900e04a9/info HTTP/1.1" 200 285
