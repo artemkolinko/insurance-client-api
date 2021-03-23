@@ -3,11 +3,11 @@ const router = express.Router();
 const controller = require('../controller/catalogController');
 
 router
-  .route('/base')
-  .get(controller.getPackages);
+  .route('/products')
+  .get(controller.getProducts);
 
 router
-  .route('/:id/info')
-  .get(controller.getPackageInfo);
+  .route('/packages/base')
+  .get(controller.getPackagesBase);
 
 module.exports = router;

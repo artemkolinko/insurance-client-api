@@ -1,26 +1,6 @@
 const { types } = require('cassandra-driver');
-const clientsDb = require('../models/Clients');
-const {
-  getProductsCost,
-  createPackage,
-} = require('../controller/catalogController');
-
-const clientTable = process.env.DB_CLIENT_TABLE;
-
-const selectById = (table) => `SELECT * FROM ${clientTable} WHERE id = ?;`;
-// UPDATE clients SET balance = 10000.12 WHERE id = 76ebb3a0-87de-11eb-bb03-652bfc2b4dab;
-const selectAll = (table) => `SELECT * FROM ${table};`;
-const selectByName = (table, name) =>
-  `SELECT * FROM ${table} WHERE name = '${name}' ALLOW FILTERING`;
-const insert = (table) =>
-  `INSERT INTO ${table} (id, name, balance) VALUES (?, ?, ?);`;
-const updateById = (table, field) =>
-  `UPDATE ${table} SET ${field} = ? WHERE id = ?;`;
-
-const getClientById = (id, table = clientTable) =>
-  clientsDb.execute(selectById(table), [id], { prepare: true });
-const updateClient = (id, balance, field, table = clientTable) =>
-  clientsDb.execute(updateById(table, field), [balance, id], { prepare: true });
+const { clients, insert, selectAll, selectByName, getClientById, updateClient, deleteById } = require('../models/Clients');
+const services = require('../services/clientServices');
 
 const topupBalance = async (req, res) => {
   try {
@@ -30,7 +10,7 @@ const topupBalance = async (req, res) => {
     const client = result.rows[0];
 
     let { balance } = client;
-    balance += amount;
+    balance = balance + amount;
 
     await updateClient(client.id, balance, 'balance');
     res.send({ balance });
@@ -43,35 +23,43 @@ const topupBalance = async (req, res) => {
   }
 };
 
-const buyPackage = async (req, res) => {
-  let diff = null;
-  if (!req.body.ids) {
-    return res.sendStatus(400);
-  }
-
+const buyPackageHandler = async (req, res) => {
+  let errStatus = 400;
   try {
-    const { ids } = req.body;
-    const result = await getClientById(req.params.id);
-    const client = result.rows[0];
-    let response = await getProductsCost({ ids });
-    let data = await response.data;
-    diff = client.balance - data.cost;
-    if (diff < 0 || !diff) {
-      throw new Error('Not enought balance');
+    if (!req.body.ids) {
+      throw new Error('Parametr "ids" is null or not exist');
     }
-    response = await createPackage({ ids });
-    data = await response.data;
-    const packageId = data.id;
-    console.log(packageId);
-    await updateClient(client.id, diff, 'balance');
-    await updateClient(client.id, packageId, 'package');
-    res.send(data);
+    const result = await services.buyPackage(req.params.id, req.body.ids);
+    if (result.error) {
+      errStatus = result.errStatus;
+      throw new Error(result.error.message);
+    }
+    res.send({ packageId: result.packageId });
   } catch (err) {
-    if (diff < 0 || !diff) {
-      res.status(402).json({ error: err.message });
-    } else {
-      res.status(404).json({ error: err.message });
+    res.status(errStatus).json({ error: err.message });
+  }
+};
+
+const getClientInfo = async (req, res) => {
+  let errStatus = 500;
+  console.log('getClientInfo');
+  try {
+    if (!req.params.id) {
+      errStatus = 400;
+      throw new Error('Path parametr {id} incorrect or not exists');
     }
+
+    const { id } = req.params;
+    console.log('client id', id);
+    const result = await services.clientInfo(id);
+
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+
+    res.status(200).send(result.data);
+  } catch (err) {
+    res.status(errStatus).send({ error: err.massage });
   }
 };
 
@@ -80,13 +68,13 @@ const getClients = (req, res) => {
   const name = req.query.name ? req.query.name.trim() : null;
   if (name) {
     // SELECT * FROM developers WHERE name = 'name' ALLOW FILTERING;
-    clientsDb
-      .execute(selectByName(clientTable, name))
+    clients
+      .execute(selectByName(name))
       .then((result) => res.status(200).send(result.rows))
       .catch((err) => res.status(500).json({ err }));
   } else {
-    clientsDb
-      .execute(selectAll(clientTable))
+    clients
+      .execute(selectAll())
       .then((result) => res.status(200).send(result.rows))
       .catch((err) => res.status(500).json({ err }));
   }
@@ -97,17 +85,14 @@ const addClient = (req, res) => {
   const { name } = req.body;
   const balance = 0;
   const params = [id, name, balance];
-  clientsDb
-    .execute(insert(clientTable), params, { prepare: true })
+  clients
+    .execute(insert(), params, { prepare: true })
     .then(() => res.status(201).json({ id }))
     .catch((err) => res.status(500).json({ err }));
 };
 
 const getClient = (req, res) => {
-  const getClientById = `SELECT * FROM ${clientTable} WHERE id = ?`;
-
-  clientsDb
-    .execute(getClientById, [req.params.id], { prepare: true })
+  getClientById(req.params.id)
     .then((result) => {
       res.status(200).json(result.rows[0]);
     })
@@ -120,11 +105,7 @@ const editClient = (req, res) => {
   const { id } = req.params;
   // get client new name
   const { name } = req.body;
-
-  const editClientName = `UPDATE ${clientTable} SET name = ? WHERE id = ?`;
-  const params = [name, id];
-  clientsDb
-    .execute(editClientName, params, { prepare: true })
+  updateClient(id, name, 'name')
     .then(() => {
       res.status(200).json({ msg: 'Client name changed!' });
     })
@@ -133,24 +114,24 @@ const editClient = (req, res) => {
 
 const deleteClient = (req, res) => {
   const { id } = req.params;
-  const deleteClientById = `DELETE FROM ${clientTable} WHERE id = ?`;
 
-  clientsDb
-    .execute(deleteClientById, [id], { prepare: true })
+  clients
+    .execute(deleteById(), [id], { prepare: true })
     .then(() => {
       res.status(200).json({
-        msg: 'Client saccessfuly deleted!',
+        msg: 'Client saccessfuly deleted!'
       });
     })
     .catch((err) => res.status(500).json({ err }));
 };
 
 module.exports = {
+  getClientInfo,
   topupBalance,
-  buyPackage,
+  buyPackageHandler,
   getClients,
   addClient,
   editClient,
   getClient,
-  deleteClient,
+  deleteClient
 };
