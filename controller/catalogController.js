@@ -1,23 +1,8 @@
-const axios = require('axios');
-
-const baseUrl = process.env.CATALOG_URL;
-const entity = {
-  products: '/products',
-  cost: '/products/cost',
-  packages: '/packages',
-  basePackages: '/packages/base'
-};
-
-const axiosGet = entity => axios.get(baseUrl + entity);
-const axiosPost = (entity, options = {}) => axios.post(baseUrl + entity, options);
-
-const getProductsCost = options => axiosPost(entity.cost, options);
-const createPackage = options => axiosPost(entity.packages, options);
+const catalog = require('../models/Catalog');
 
 const getProducts = async (req, res) => {
-  const url = req.query.ids ? `${entity.products}?ids=${req.query.ids}` : entity.products;
   try {
-    const response = await axiosGet(url);
+    const response = await catalog.getProductsAll(req);
     const data = await response.data;
     res.send(data);
   } catch (err) {
@@ -25,9 +10,9 @@ const getProducts = async (req, res) => {
   }
 };
 
-const getPackages = async (req, res) => {
+const getPackagesBase = async (_, res) => {
   try {
-    const response = await axiosGet(entity.basePackages);
+    const response = await catalog.getPackagesBaseAll();
     const data = await response.data;
     res.send(data);
   } catch (err) {
@@ -35,16 +20,7 @@ const getPackages = async (req, res) => {
   }
 };
 
-const getPackageInfo = async (req, res) => {
-  try {
-    const {id} = req.params;
-    console.warn('getPackageInfo :', id);
-    const response = await axiosGet(`${entity.packages}/${id}/info`);
-    const data = await response.data;
-    res.status(200).send(data);
-  } catch (err) {
-    res.status(500).send(err);
-  }
+module.exports = {
+  getProducts,
+  getPackagesBase
 };
-
-module.exports = { getProducts, getProductsCost, createPackage, getPackages, getPackageInfo };
