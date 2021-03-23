@@ -1,25 +1,21 @@
 const { types } = require('cassandra-driver');
-const { clients, insert, selectAll, selectByName, getClientById, updateClient, deleteById } = require('../models/Clients');
+const clients = require('../models/Clients');
 const services = require('../services/clientServices');
 
-const topupBalance = async (req, res) => {
+const topupBalanceHandler = async (req, res) => {
+  let errStatus = 500;
   try {
-    const { amount } = req.body;
-
-    const result = await getClientById(req.params.id);
-    const client = result.rows[0];
-
-    let { balance } = client;
-    balance = balance + amount;
-
-    await updateClient(client.id, balance, 'balance');
-    res.send({ balance });
-  } catch (err) {
-    if (!req.body.amount || req.body.amount <= 0) {
-      res.sendStatus(400);
-    } else {
-      res.status(500).send(err);
+    if (!req.body.amount || req.body.amount < 0) {
+      errStatus = 400;
+      throw new Error('amount is negative or undefined');
     }
+    const result = await services.topupBalance(req.params.id, req.body.amount);
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+    res.send({ balance: result.balance });
+  } catch (err) {
+    res.status(errStatus).send({ error: err.message });
   }
 };
 
@@ -42,7 +38,6 @@ const buyPackageHandler = async (req, res) => {
 
 const getClientInfo = async (req, res) => {
   let errStatus = 500;
-  console.log('getClientInfo');
   try {
     if (!req.params.id) {
       errStatus = 400;
@@ -50,7 +45,6 @@ const getClientInfo = async (req, res) => {
     }
 
     const { id } = req.params;
-    console.log('client id', id);
     const result = await services.clientInfo(id);
 
     if (result.error) {
@@ -68,13 +62,13 @@ const getClients = (req, res) => {
   const name = req.query.name ? req.query.name.trim() : null;
   if (name) {
     // SELECT * FROM developers WHERE name = 'name' ALLOW FILTERING;
-    clients
-      .execute(selectByName(name))
+    clients.cli
+      .execute(clients.selectByName(name))
       .then((result) => res.status(200).send(result.rows))
       .catch((err) => res.status(500).json({ err }));
   } else {
-    clients
-      .execute(selectAll())
+    clients.cli
+      .execute(clients.selectAll())
       .then((result) => res.status(200).send(result.rows))
       .catch((err) => res.status(500).json({ err }));
   }
@@ -85,18 +79,18 @@ const addClient = (req, res) => {
   const { name } = req.body;
   const balance = 0;
   const params = [id, name, balance];
-  clients
-    .execute(insert(), params, { prepare: true })
+  clients.cli
+    .execute(clients.insert(), params, { prepare: true })
     .then(() => res.status(201).json({ id }))
     .catch((err) => res.status(500).json({ err }));
 };
 
 const getClient = (req, res) => {
-  getClientById(req.params.id)
-    .then((result) => {
+  clients.getClientById(req.params.id)
+    .then(result => {
       res.status(200).json(result.rows[0]);
     })
-    .catch((err) => {
+    .catch(err => {
       res.status(404).json({ err });
     });
 };
@@ -105,7 +99,7 @@ const editClient = (req, res) => {
   const { id } = req.params;
   // get client new name
   const { name } = req.body;
-  updateClient(id, name, 'name')
+  clients.updateClient(id, name, 'name')
     .then(() => {
       res.status(200).json({ msg: 'Client name changed!' });
     })
@@ -115,8 +109,8 @@ const editClient = (req, res) => {
 const deleteClient = (req, res) => {
   const { id } = req.params;
 
-  clients
-    .execute(deleteById(), [id], { prepare: true })
+  clients.cli
+    .execute(clients.deleteById(), [id], { prepare: true })
     .then(() => {
       res.status(200).json({
         msg: 'Client saccessfuly deleted!'
@@ -127,7 +121,7 @@ const deleteClient = (req, res) => {
 
 module.exports = {
   getClientInfo,
-  topupBalance,
+  topupBalanceHandler,
   buyPackageHandler,
   getClients,
   addClient,

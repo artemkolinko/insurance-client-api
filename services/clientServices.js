@@ -9,13 +9,30 @@ const clientInfo = async (id) => {
   try {
     const resClient = await clients.getClientById(id);
     const client = await resClient.rows[0];
-    console.log(client);
-    console.log(client.package);
     const response = await catalog.getPackageInfo(client.package);
-    console.log(response);
     const packageInfo = await response.data;
     client.package = packageInfo;
     result.data = client;
+    return result;
+  } catch (err) {
+    result.error = err;
+    return result;
+  }
+};
+
+const topupBalance = async (id, amount) => {
+  const result = {
+    balance: null,
+    error: null
+  };
+  try {
+    const result = await clients.getClientById(id);
+    const client = result.rows[0];
+    console.log(client);
+    let { balance } = client;
+    balance = balance + amount;
+    await clients.updateClient(client.id, balance, 'balance');
+    result.balance = balance;
     return result;
   } catch (err) {
     result.error = err;
@@ -51,4 +68,4 @@ const buyPackage = async (id, productIds) => {
   };
 };
 
-module.exports = { clientInfo, buyPackage };
+module.exports = { clientInfo, topupBalance, buyPackage };

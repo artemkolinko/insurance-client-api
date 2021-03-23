@@ -17,7 +17,7 @@ router
 
 router
   .route('/:id/topup-balance')
-  .patch(controller.topupBalance);
+  .patch(controller.topupBalanceHandler);
 
 router
   .route('/:id/info')
