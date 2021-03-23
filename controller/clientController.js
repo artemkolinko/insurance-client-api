@@ -1,17 +1,77 @@
 const { types } = require('cassandra-driver');
-const clientsDb = require('../models/Clients');
+const clients = require('../models/Clients');
+const services = require('../services/clientServices');
 
-const clientTable = process.env.DB_CLIENT_TABLE;
+const topupBalanceHandler = async (req, res) => {
+  let errStatus = 500;
+  try {
+    if (!req.body.amount || req.body.amount < 0) {
+      errStatus = 400;
+      throw new Error('amount is negative or undefined');
+    }
+    const result = await services.topupBalance(req.params.id, req.body.amount);
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+    res.send({ balance: result.balance });
+  } catch (err) {
+    res.status(errStatus).send({ error: err.message });
+  }
+};
 
-const selectAll = (table) => `SELECT * FROM ${table}`;
-const insert = (table) =>
-  `INSERT INTO ${table} (id, name, balance) VALUES (?, ?, ?)`;
+const buyPackageHandler = async (req, res) => {
+  let errStatus = 400;
+  try {
+    if (!req.body.ids) {
+      throw new Error('Parametr "ids" is null or not exist');
+    }
+    const result = await services.buyPackage(req.params.id, req.body.ids);
+    if (result.error) {
+      errStatus = result.errStatus;
+      throw new Error(result.error.message);
+    }
+    res.send({ packageId: result.packageId });
+  } catch (err) {
+    res.status(errStatus).json({ error: err.message });
+  }
+};
+
+const getClientInfo = async (req, res) => {
+  let errStatus = 500;
+  try {
+    if (!req.params.id) {
+      errStatus = 400;
+      throw new Error('Path parametr {id} incorrect or not exists');
+    }
+
+    const { id } = req.params;
+    const result = await services.clientInfo(id);
+
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+
+    res.status(200).send(result.data);
+  } catch (err) {
+    res.status(errStatus).send({ error: err.massage });
+  }
+};
 
 const getClients = (req, res) => {
-  clientsDb
-    .execute(selectAll(clientTable))
-    .then((result) => res.status(201).send(result.rows))
-    .catch((err) => res.status(500).json({ err }));
+  // Get name from query string
+  const name = req.query.name ? req.query.name.trim() : null;
+  if (name) {
+    // SELECT * FROM developers WHERE name = 'name' ALLOW FILTERING;
+    clients.cli
+      .execute(clients.selectByName(name))
+      .then((result) => res.status(200).send(result.rows))
+      .catch((err) => res.status(500).json({ err }));
+  } else {
+    clients.cli
+      .execute(clients.selectAll())
+      .then((result) => res.status(200).send(result.rows))
+      .catch((err) => res.status(500).json({ err }));
+  }
 };
 
 const addClient = (req, res) => {
@@ -19,26 +79,53 @@ const addClient = (req, res) => {
   const { name } = req.body;
   const balance = 0;
   const params = [id, name, balance];
-  clientsDb
-    .execute(insert(clientTable), params, { prepare: true })
+  clients.cli
+    .execute(clients.insert(), params, { prepare: true })
     .then(() => res.status(201).json({ id }))
-    .catch((err) => res.status(500).json(err));
+    .catch((err) => res.status(500).json({ err }));
+};
+
+const getClient = (req, res) => {
+  clients.getClientById(req.params.id)
+    .then(result => {
+      res.status(200).json(result.rows[0]);
+    })
+    .catch(err => {
+      res.status(404).json({ err });
+    });
 };
 
 const editClient = (req, res) => {
   const { id } = req.params;
   // get client new name
   const { name } = req.body;
-
-  const editClientName = `UPDATE ${clientTable} SET name = ? WHERE id = ?`;
-  const params = [name, id];
-  clientsDb
-    .execute(editClientName, params, { prepare: true })
+  clients.updateClient(id, name, 'name')
     .then(() => {
-      res.json({ msg: 'Client name changed!' });
-      console.log('Client name changed!');
+      res.status(200).json({ msg: 'Client name changed!' });
     })
-    .catch((err) => res.status(500).json(err));
+    .catch((err) => res.status(500).json({ err }));
 };
 
-module.exports = { getClients, addClient, editClient };
+const deleteClient = (req, res) => {
+  const { id } = req.params;
+
+  clients.cli
+    .execute(clients.deleteById(), [id], { prepare: true })
+    .then(() => {
+      res.status(200).json({
+        msg: 'Client saccessfuly deleted!'
+      });
+    })
+    .catch((err) => res.status(500).json({ err }));
+};
+
+module.exports = {
+  getClientInfo,
+  topupBalanceHandler,
+  buyPackageHandler,
+  getClients,
+  addClient,
+  editClient,
+  getClient,
+  deleteClient
+};
