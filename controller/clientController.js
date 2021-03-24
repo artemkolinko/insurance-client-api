@@ -3,13 +3,16 @@ const clients = require('../models/Clients');
 const services = require('../services/clientServices');
 
 const topupBalanceHandler = async (req, res) => {
+  const amount = parseInt(req.body.amount);
+  const { id } = req.params;
+
   let errStatus = 500;
   try {
-    if (!req.body.amount || req.body.amount < 0) {
+    if (Number.isNaN(amount) || amount < 0) {
       errStatus = 400;
       throw new Error('amount is negative or undefined');
     }
-    const result = await services.topupBalance(req.params.id, req.body.amount);
+    const result = await services.topupBalance(id, amount);
     if (result.error) {
       throw new Error(result.error.message);
     }
@@ -86,11 +89,12 @@ const addClient = (req, res) => {
 };
 
 const getClient = (req, res) => {
-  clients.getClientById(req.params.id)
-    .then(result => {
+  clients
+    .getClientById(req.params.id)
+    .then((result) => {
       res.status(200).json(result.rows[0]);
     })
-    .catch(err => {
+    .catch((err) => {
       res.status(404).json({ err });
     });
 };
@@ -99,7 +103,8 @@ const editClient = (req, res) => {
   const { id } = req.params;
   // get client new name
   const { name } = req.body;
-  clients.updateClient(id, name, 'name')
+  clients
+    .updateClient(id, name, 'name')
     .then(() => {
       res.status(200).json({ msg: 'Client name changed!' });
     })
@@ -113,7 +118,7 @@ const deleteClient = (req, res) => {
     .execute(clients.deleteById(), [id], { prepare: true })
     .then(() => {
       res.status(200).json({
-        msg: 'Client saccessfuly deleted!'
+        msg: 'Client saccessfuly deleted!',
       });
     })
     .catch((err) => res.status(500).json({ err }));
@@ -127,5 +132,5 @@ module.exports = {
   addClient,
   editClient,
   getClient,
-  deleteClient
+  deleteClient,
 };
