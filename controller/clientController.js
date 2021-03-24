@@ -28,6 +28,7 @@ const buyPackageHandler = async (req, res) => {
     if (!req.body.ids) {
       throw new Error('Parametr "ids" is null or not exist');
     }
+    // buyPackage() - async func, return object
     const result = await services.buyPackage(req.params.id, req.body.ids);
     if (result.error) {
       errStatus = result.errStatus;

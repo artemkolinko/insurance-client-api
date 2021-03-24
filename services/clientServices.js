@@ -4,7 +4,7 @@ const catalog = require('../models/Catalog');
 const clientInfo = async (id) => {
   const result = {
     data: null,
-    error: null
+    error: null,
   };
   try {
     const resClient = await clients.getClientById(id);
@@ -23,7 +23,7 @@ const clientInfo = async (id) => {
 const topupBalance = async (id, amount) => {
   const result = {
     balance: null,
-    error: null
+    error: null,
   };
   try {
     const result = await clients.getClientById(id);
@@ -43,20 +43,33 @@ const buyPackage = async (id, productIds) => {
   const result = {
     packageId: null,
     error: null,
-    errStatus: null
+    errStatus: null,
   };
   try {
     const resClient = await clients.getClientById(id);
-    const resCost = await catalog.getProductsCost({ ids: productIds });
     const client = await resClient.rows[0];
-    const dataCost = await resCost.data;
-    const balance = client.balance - dataCost.cost;
+    // const client = resClient.rows[0];
+
+    const resCost = await catalog.getProductsCost(productIds);
+    const dataCost = await +resCost.data;
+    // const dataCost = +resCost.data;
+
+    const balance = client.balance - dataCost;
     if (balance < 0) {
       result.errStatus = 402;
       throw new Error('Not enough balance, need top up');
     }
-    const resPack = await catalog.createPackage({ ids: productIds });
+
+    // POST to Java API
+    const resPack = await catalog.createPackage({
+      description: 'some desc',
+      name: 'Super Package',
+      productIds,
+    });
+
     const dataPack = await resPack.data;
+    // const dataPack = resPack.data;
+
     result.packageId = dataPack.id;
     await clients.updateClient(client.id, balance, 'balance');
     await clients.updateClient(client.id, result.packageId, 'package');
@@ -64,7 +77,7 @@ const buyPackage = async (id, productIds) => {
   } catch (err) {
     result.error = err;
     return result;
-  };
+  }
 };
 
 module.exports = { clientInfo, topupBalance, buyPackage };
