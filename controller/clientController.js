@@ -88,12 +88,18 @@ const getClients = (req, res) => {
 const addClient = (req, res) => {
   const id = types.timeuuid();
   const { name } = req.body;
-  const balance = 0;
-  const params = [id, name, balance];
-  clients.cli
-    .execute(clients.insert(), params, { prepare: true })
-    .then(() => res.status(201).json({ id }))
-    .catch((err) => res.status(500).json({ err }));
+  try {
+    if (!name) { throw new Error('Parametr "name" is null or not exist'); }
+    if (name.match(/^\d+$/g)) { throw new Error('Parametr "name" should be "string"'); }
+    const balance = 0;
+    const params = [id, name, balance];
+    clients.cli
+      .execute(clients.insert(), params, { prepare: true })
+      .then(() => res.status(201).json({ id }))
+      .catch((err) => res.status(500).json({ err }));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 };
 
 const getClient = (req, res) => {
@@ -126,7 +132,7 @@ const deleteClient = (req, res) => {
     .execute(clients.deleteById(), [id], { prepare: true })
     .then(() => {
       res.status(200).json({
-        msg: 'Client saccessfuly deleted!',
+        msg: 'Client saccessfuly deleted!'
       });
     })
     .catch((err) => res.status(500).json({ err }));
@@ -140,5 +146,5 @@ module.exports = {
   addClient,
   editClient,
   getClient,
-  deleteClient,
+  deleteClient
 };
