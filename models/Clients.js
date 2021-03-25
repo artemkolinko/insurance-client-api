@@ -11,33 +11,30 @@ class Clients {
   init() {
     this.cli = new Client({
       cloud: {
-        secureConnectBundle: path.resolve(__dirname, '../secure-connect-softinsurance.zip')
+        secureConnectBundle: path.resolve(
+          __dirname,
+          '../secure-connect-softinsurance.zip'
+        ),
       },
       credentials: {
         username: process.env.DB_USER,
-        password: process.env.DB_PASSWORD
+        password: process.env.DB_PASSWORD,
       },
-      keyspace: process.env.DB_KEYSPACE
+      keyspace: process.env.DB_KEYSPACE,
     });
   }
 
-  connectCloud() {
-    this.cli
-      .connect()
-      .then(() => {
-        console.warn('Connected to DataStax Astra');
-        clients.execute(
-              `CREATE this.clientTable IF NOT EXISTS ${this.clientTable} (id uuid PRIMARY KEY, name text, package int, balance float);`
-        );
-      })
-      .then(() => {
-        console.warn('this.clientTable exist');
-      })
-      .catch((err) => console.warn(err));
-  }
-
-  connectLocal() {
-
+  async connectCloud() {
+    try {
+      await this.cli.connect();
+      console.warn('Connected to DataStax Astra');
+      await this.cli.execute(
+        `CREATE TABLE IF NOT EXISTS ${this.clientTable} (id uuid PRIMARY KEY, name text, package uuid, balance float);`
+      );
+      console.warn('DB exist');
+    } catch (error) {
+      console.warn(error);
+    }
   }
 
   selectById() {
@@ -69,10 +66,14 @@ class Clients {
   }
 
   updateClient(id, value, field) {
-    return this.cli.execute(this.updateById(field), [value, id], { prepare: true });
+    return this.cli.execute(this.updateById(field), [value, id], {
+      prepare: true,
+    });
   }
 }
 
 const clients = new Clients();
+
+clients.connectCloud();
 
 module.exports = clients;
