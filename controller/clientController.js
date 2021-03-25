@@ -25,18 +25,8 @@ const topupBalanceHandler = async (req, res) => {
 const buyPackageHandler = async (req, res) => {
   let errStatus = 400;
   try {
-    if (!req.body.ids) {
-      throw new Error('Parametr "ids" is null or not exist');
-    } else if (req.body.ids) {
-      const ids = req.body.ids;
-      ids.forEach((id) => {
-        if (!id.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g)) {
-          throw new Error(`id [${id}] is in wrong format.`);
-        }
-      });
-    }
     // buyPackage() - async func, return object
-    const result = await services.buyPackage(req.params.id, req.body.ids);
+    const result = await services.buyPackage(req.params.id, req.body);
     if (result.error) {
       errStatus = result.errStatus;
       throw new Error(result.error.message);
