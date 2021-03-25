@@ -12,3 +12,8 @@ node_modules/
 
 # misc
 .assets
+
+# Logs
+logs
+*.log
+access.log

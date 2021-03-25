@@ -18,6 +18,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use('/api/v1/clients', clientsRouter);
 app.use('/api/v1/catalog', catalogRouter);
 
+app.use(function(req, res) {
+  res.status(404).json({ error: 'Not found!' });
+});
+
 // ===========================================
 // Srart server
 // ============================================
