@@ -10,6 +10,10 @@ const clientInfo = async (id) => {
   try {
     const resClient = await clients.getClientById(id);
     const client = await resClient.rows[0];
+    if (!client.package) {
+      result.data = client;
+      return result;
+    }
     const response = await catalog.getPackageInfo(client.package);
     const packageInfo = await response.data;
     client.package = packageInfo;
