@@ -1,10 +1,11 @@
 const clients = require('../models/Clients');
 const catalog = require('../models/Catalog');
+const { testId } = require('../auxiliary');
 
 const clientInfo = async (id) => {
   const result = {
     data: null,
-    error: null,
+    error: null
   };
   try {
     const resClient = await clients.getClientById(id);
@@ -23,7 +24,7 @@ const clientInfo = async (id) => {
 const topupBalance = async (id, amount) => {
   const result = {
     balance: null,
-    error: null,
+    error: null
   };
   try {
     const result = await clients.getClientById(id);
@@ -39,20 +40,36 @@ const topupBalance = async (id, amount) => {
   }
 };
 
-const buyPackage = async (id, productIds) => {
+const buyPackage = async (id, body) => {
   const result = {
     packageId: null,
     error: null,
-    errStatus: null,
+    errStatus: 400
   };
+
   try {
+    if (!testId(id)) {
+      throw new Error(`id: [${id}] is invalid`);
+    }
+    if (!body.name ||
+        !body.description ||
+        !body.productIds) {
+      throw new Error('Parametrs are missing');
+    }
+    const { name, description, productIds } = body;
+    if (name.trim() === '' || description === '') {
+      throw new Error('Package name or description is empty');
+    }
+    productIds.forEach((productId) => {
+      if (!testId(productId)) {
+        throw new Error(`id: [${productId}] is invalid`);
+      }
+    });
     const resClient = await clients.getClientById(id);
-    const client = await resClient.rows[0];
-    // const client = resClient.rows[0];
+    const client = resClient.rows[0];
 
     const resCost = await catalog.getProductsCost(productIds);
-    const dataCost = await +resCost.data;
-    // const dataCost = +resCost.data;
+    const dataCost = +resCost.data;
 
     const balance = client.balance - dataCost;
     if (balance < 0) {
@@ -62,14 +79,12 @@ const buyPackage = async (id, productIds) => {
 
     // POST to Java API
     const resPack = await catalog.createPackage({
-      description: 'some desc',
-      name: 'Super Package',
-      productIds,
+      description,
+      name,
+      productIds
     });
 
-    const dataPack = await resPack.data;
-    // const dataPack = resPack.data;
-
+    const dataPack = resPack.data;
     result.packageId = dataPack.id;
     await clients.updateClient(client.id, balance, 'balance');
     await clients.updateClient(client.id, result.packageId, 'package');

@@ -14,7 +14,6 @@ const getProductsCost = (array) => {
   array.forEach((element) => {
     queryStr += 'ids=' + element + '&';
   });
-
   return axiosGet(entity.cost + queryStr);
 };
 
