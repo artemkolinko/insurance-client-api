@@ -11,7 +11,8 @@ const clientInfo = async (id) => {
     const resClient = await clients.getClientById(id);
     const client = await resClient.rows[0];
     if (!client.package) {
-      throw new Error('No package found, please buy one');
+      result.data = client;
+      return result;
     }
     const response = await catalog.getPackageInfo(client.package);
     const packageInfo = await response.data;
