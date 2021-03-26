@@ -54,7 +54,7 @@ const getClientInfo = async (req, res) => {
 
     res.status(200).send(result.data);
   } catch (err) {
-    res.status(errStatus).send({ error: err.massage });
+    res.status(errStatus).send({ error: err.message });
   }
 };
 
