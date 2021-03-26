@@ -4,19 +4,30 @@ const entity = {
   products: '/products',
   cost: '/products/cost',
   packages: '/packages',
-  basePackages: '/packages/base'
+  basePackages: '/packages/base',
 };
 
-const getProductsCost = options => axiosPost(entity.cost, options);
-const createPackage = options => axiosPost(entity.packages, options);
+// const getProductsCost = options => axiosPost(entity.cost, options);
+const getProductsCost = (array) => {
+  let queryStr = '?';
+
+  array.forEach((element) => {
+    queryStr += 'ids=' + element + '&';
+  });
+  return axiosGet(entity.cost + queryStr);
+};
+
+const createPackage = (options) => axiosPost(entity.packages, options);
 const getPackagesBaseAll = () => axiosGet(entity.basePackages);
 
-const getProductsAll = req => {
-  const url = req.query.filter ? `${entity.products}?ids=${req.query.filter}` : entity.products;
+const getProductsAll = (req) => {
+  const url = req.query.filter
+    ? `${entity.products}?ids=${req.query.filter}`
+    : entity.products;
   return axiosGet(url);
 };
 
-const getPackageInfo = id => {
+const getPackageInfo = (id) => {
   return axiosGet(`${entity.packages}/${id}/info`);
 };
 
@@ -25,5 +36,5 @@ module.exports = {
   getPackagesBaseAll,
   getProductsCost,
   createPackage,
-  getPackageInfo
+  getPackageInfo,
 };

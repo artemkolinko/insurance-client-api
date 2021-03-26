@@ -1,5 +1,6 @@
 const clients = require('../models/Clients');
 const catalog = require('../models/Catalog');
+const { testId } = require('../auxiliary');
 
 const clientInfo = async (id) => {
   const result = {
@@ -9,6 +10,10 @@ const clientInfo = async (id) => {
   try {
     const resClient = await clients.getClientById(id);
     const client = await resClient.rows[0];
+    if (!client.package) {
+      result.data = client;
+      return result;
+    }
     const response = await catalog.getPackageInfo(client.package);
     const packageInfo = await response.data;
     client.package = packageInfo;
@@ -39,24 +44,51 @@ const topupBalance = async (id, amount) => {
   }
 };
 
-const buyPackage = async (id, productIds) => {
+const buyPackage = async (id, body) => {
   const result = {
     packageId: null,
     error: null,
-    errStatus: null
+    errStatus: 400
   };
+
   try {
+    if (!testId(id)) {
+      throw new Error(`id: [${id}] is invalid`);
+    }
+    if (!body.name ||
+        !body.description ||
+        !body.productIds) {
+      throw new Error('Parametrs are missing');
+    }
+    const { name, description, productIds } = body;
+    if (name.trim() === '' || description === '') {
+      throw new Error('Package name or description is empty');
+    }
+    productIds.forEach((productId) => {
+      if (!testId(productId)) {
+        throw new Error(`id: [${productId}] is invalid`);
+      }
+    });
     const resClient = await clients.getClientById(id);
-    const resCost = await catalog.getProductsCost({ ids: productIds });
-    const client = await resClient.rows[0];
-    const dataCost = await resCost.data;
-    const balance = client.balance - dataCost.cost;
+    const client = resClient.rows[0];
+
+    const resCost = await catalog.getProductsCost(productIds);
+    const dataCost = +resCost.data;
+
+    const balance = client.balance - dataCost;
     if (balance < 0) {
       result.errStatus = 402;
       throw new Error('Not enough balance, need top up');
     }
-    const resPack = await catalog.createPackage({ ids: productIds });
-    const dataPack = await resPack.data;
+
+    // POST to Java API
+    const resPack = await catalog.createPackage({
+      description,
+      name,
+      productIds
+    });
+
+    const dataPack = resPack.data;
     result.packageId = dataPack.id;
     await clients.updateClient(client.id, balance, 'balance');
     await clients.updateClient(client.id, result.packageId, 'package');
@@ -64,7 +96,7 @@ const buyPackage = async (id, productIds) => {
   } catch (err) {
     result.error = err;
     return result;
-  };
+  }
 };
 
 module.exports = { clientInfo, topupBalance, buyPackage };
