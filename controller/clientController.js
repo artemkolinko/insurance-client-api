@@ -1,24 +1,35 @@
-const { types } = require('cassandra-driver');
+// const { types } = require('cassandra-driver');
 const clients = require('../models/Clients');
 const services = require('../services/clientServices');
+const { testId } = require('../auxiliary');
 
-const topupBalanceHandler = async (req, res) => {
-  const amount = parseInt(req.body.amount);
-  const { id } = req.params;
-
-  let errStatus = 500;
+const topupBalance = async (req, res) => {
+  const errStatus = 500;
   try {
-    if (Number.isNaN(amount) || amount < 0) {
-      errStatus = 400;
-      throw new Error('amount is negative or undefined');
+    if (!req.body.amount) {
+      return res.status(errStatus).json({ error: 'amount required' });
     }
-    const result = await services.topupBalance(id, amount);
-    if (result.error) {
-      throw new Error(result.error.message);
+
+    const { amount } = req.body;
+    if (!amount || amount < 0 || typeof amount !== 'number') {
+      return res.status(errStatus).send({ error: 'amount is negative or undefined' });
     }
-    res.send({ balance: result.balance });
+
+    if (!req.user.sub || !testId(req.user.sub)) {
+      return res.status(errStatus).json({ error: `User ID: [${req.user.sub}] must match uuid` });
+    }
+
+    const { sub: id } = req.user;
+    const resClient = await clients.getClientById(id);
+    const client = resClient.rows[0];
+
+    if (client) {
+      return await services.topupBalance(client, amount, res);
+    }
+    await services.createClient(req, res);
+    res.status(201).send({ client });
   } catch (err) {
-    res.status(errStatus).send({ error: err.message });
+    res.status(errStatus).json({ error: err.message });
   }
 };
 
@@ -75,22 +86,22 @@ const getClients = (req, res) => {
   }
 };
 
-const addClient = (req, res) => {
-  const id = types.timeuuid();
-  const { name } = req.body;
-  try {
-    if (!name) { throw new Error('Parametr "name" is null or not exist'); }
-    if (name.match(/^\d+$/g)) { throw new Error('Parametr "name" should be "string"'); }
-    const balance = 0;
-    const params = [id, name, balance];
-    clients.cli
-      .execute(clients.insert(), params, { prepare: true })
-      .then(() => res.status(201).json({ id }))
-      .catch((err) => res.status(500).json({ err }));
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
+// const addClient = (req, res) => {
+//   const id = types.timeuuid();
+//   const { name } = req.body;
+//   try {
+//     if (!name) { throw new Error('Parametr "name" is null or not exist'); }
+//     if (name.match(/^\d+$/g)) { throw new Error('Parametr "name" should be "string"'); }
+//     const balance = 0;
+//     const params = [id, name, balance];
+//     clients.cli
+//       .execute(clients.insert(), params, { prepare: true })
+//       .then(() => res.status(201).json({ id }))
+//       .catch((err) => res.status(500).json({ err }));
+//   } catch (err) {
+//     res.status(400).json({ error: err.message });
+//   }
+// };
 
 const getClient = (req, res) => {
   try {
@@ -152,10 +163,10 @@ const deleteClient = (req, res) => {
 
 module.exports = {
   getClientInfo,
-  topupBalanceHandler,
+  topupBalance,
   buyPackageHandler,
   getClients,
-  addClient,
+  // addClient,
   editClient,
   getClient,
   deleteClient

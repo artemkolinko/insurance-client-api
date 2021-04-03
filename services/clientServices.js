@@ -2,6 +2,20 @@ const clients = require('../models/Clients');
 const catalog = require('../models/Catalog');
 const { testId } = require('../auxiliary');
 
+const createClient = async (req, res) => {
+  const errStatus = 400;
+  if (!req.body.name) {
+    return res.status(errStatus).json({ error: 'name required' });
+  }
+  const { name, amount } = req.body;
+  if (name.match(/^\d+$/g)) {
+    return res.status(errStatus).send({ error: 'name should be "string"' });
+  }
+
+  const params = [req.user.sub, name, amount];
+  return clients.cli.execute(clients.insert(), params, { prepare: true });
+};
+
 const clientInfo = async (id) => {
   const result = {
     data: null,
@@ -25,22 +39,25 @@ const clientInfo = async (id) => {
   }
 };
 
-const topupBalance = async (id, amount) => {
-  const result = {
-    balance: null,
-    error: null
-  };
+const topupBalance = async (client, amount, res) => {
   try {
-    const result = await clients.getClientById(id);
-    const client = result.rows[0];
     let { balance } = client;
-    balance = balance + amount;
+    if (!balance) {
+      balance = amount;
+    } else { balance = balance + amount; }
+
     await clients.updateClient(client.id, balance, 'balance');
-    result.balance = balance;
-    return result;
+
+    const resClient = await clients.getClientById(client.id);
+    const balanceCheck = resClient.rows[0].balance;
+
+    if (balanceCheck !== balance) {
+      throw new Error('balance topup rejected');
+    }
+
+    res.send({ balance: balanceCheck });
   } catch (err) {
-    result.error = err;
-    return result;
+    res.status(500).send({ error: err.message });
   }
 };
 
@@ -99,4 +116,4 @@ const buyPackage = async (id, body) => {
   }
 };
 
-module.exports = { clientInfo, topupBalance, buyPackage };
+module.exports = { createClient, clientInfo, topupBalance, buyPackage };

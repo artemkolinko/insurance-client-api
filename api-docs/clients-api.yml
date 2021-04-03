@@ -1,0 +1,428 @@
+openapi: '3.0.2'
+info:
+  title: SI Client API
+  version: '2.0'
+servers:
+  - url: https://insurance-client-api.herokuapp.com/api/v2/
+  - url: https://si-client.herokuapp.com/api/v2/
+  - url: http://localhost:3000/api/v2/
+components:
+  schemas:
+    Client:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        balance: 
+          type: number
+          format: double
+        package: 
+          type: string
+    ClientInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        balance: 
+          type: number
+          format: double
+        package: 
+          $ref: "#/components/schemas/PackageInfo"
+    Package:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description: 
+          type: string
+        price: 
+          type: number
+          format: double
+        createdTime:
+          type: string
+          format: date-time
+        products: 
+          type: array
+          items:
+            type: string
+    PackageInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description: 
+          type: string
+        price: 
+          type: number
+          format: double
+        createdTime:
+          type: string
+          format: date-time
+        products: 
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description: 
+          type: string
+        price: 
+          type: number
+          format: double
+  
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /catalog/packages/base:
+    get:
+      tags:
+      - catalog
+      security:
+        - bearerAuth: []
+      summary: List of base Packages
+      operationId: getBasePackagesList
+      description: Get list of base Packages
+      responses:
+        '200':
+          description: A list of clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Package'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /clients/topup-balance:
+    post:
+      tags:
+      - clients
+      security:
+        - bearerAuth: []
+      summary: Add new client with balance
+      operationId: balanceTopUp
+      description: Add new client
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: 
+                  type: string
+                  example: Brie Larson
+                amount:
+                  type: number
+                  format: double
+                  example: 2000
+      responses:
+        '200':
+          description: Client
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    example: 0ebcf4f0-aa0d-4356-a813-e25c2e462c02
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /clients:
+    get:
+      tags:
+      - clients
+      security:
+        - bearerAuth: []
+      summary: List of Clients
+      operationId: getClientsList
+      description: Get list of Clients
+      parameters:
+          - in: query
+            name: name
+            description: "Filter by username"
+            schema:
+              type: string
+      responses:
+        '200':
+          description: A list of clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Client'
+            
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /clients/{clientId}:
+    get:
+      tags:
+      - clients
+      security:
+        - bearerAuth: []
+      summary: Get client by ID
+      operationId: getClientById
+      description: Get client by ID
+      parameters:
+        - in: path
+          name: clientId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    patch:
+      tags:
+      - clients
+      security:
+        - bearerAuth: []
+      summary: Partially updates Client
+      operationId: patchClient
+      description: Partially updates an Client
+      parameters:
+        - in: path
+          name: clientId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '204':
+          description: Ok
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      tags:
+      - clients
+      security:
+        - bearerAuth: []
+      summary: Delete Client
+      operationId: rmClient
+      description: Delete existing Client
+      parameters:
+        - in: path
+          name: clientId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: OK
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /clients/{clientId}/buy-package:
+    patch:
+      tags:
+      - clients
+      security:
+      - bearerAuth: []
+      summary: Operation - Buy Package
+      operationId: buyPackage
+      description: Package data for Client
+      parameters:
+        - in: path
+          name: clientId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description: 
+                  type: string
+                productIds:
+                  type: array
+                  items: 
+                    type: string
+      responses:
+        '200':
+          description: Package ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  packageId:
+                    type: string
+        '400':
+          description: Missing parametrs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '402':
+          description: Payment require
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Client not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /clients/{clientId}/info:
+    get:
+      tags:
+      - clients
+      security:
+        - bearerAuth: []
+      summary: Operation - Get all info about Client
+      operationId: getClientInfo
+      description: All info about Client
+      parameters:
+        - in: path
+          name: clientId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: All info about Client 
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientInfo"
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /catalog/products:
+    get:
+      tags:
+      - catalog
+      security:
+        - bearerAuth: []
+      summary: List of Products
+      operationId: getProductsList
+      description: Get list of Products
+      parameters:
+        - in: query
+          name: filter
+          description: Filter by name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of Products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
