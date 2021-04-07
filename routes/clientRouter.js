@@ -5,6 +5,7 @@ const errorHandler = require('../_helpers/error-handler');
 const controller = require('../controller/clientController');
 const Role = require('../_helpers/role');
 
+// /api/v2/clients
 router.route('/')
   .get(authorize(Role.Admin), errorHandler, controller.getClients);
 // .post(authorize(Role.Admin), errorHandler, controller.addClient);
