@@ -145,8 +145,6 @@ paths:
     get:
       tags:
       - catalog
-      security:
-        - bearerAuth: []
       summary: List of base Packages
       operationId: getBasePackagesList
       description: Get list of base Packages
@@ -172,8 +170,6 @@ paths:
     get:
       tags:
       - catalog
-      security:
-        - bearerAuth: []
       summary: List of Products
       operationId: getProductsList
       description: Get list of Products

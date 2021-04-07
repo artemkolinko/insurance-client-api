@@ -2,54 +2,20 @@
 const clients = require('../models/Clients');
 const services = require('../services/clientServices');
 const { testId } = require('../auxiliary');
+const { getToken } = require('../_helpers/jwt');
 
-// const topupBalance = async (req, res) => {
-//   const errStatus = 500;
-//   try {
-//     if (!req.body.amount) {
-//       return res.status(errStatus).json({ error: 'amount required' });
-//     }
-
-//     const { amount } = req.body;
-//     if (!amount || amount < 0 || typeof amount !== 'number') {
-//       return res.status(errStatus).send({ error: 'amount is negative or undefined' });
-//     }
-
-//     if (!req.user.sub || !testId(req.user.sub)) {
-//       return res.status(errStatus).json({ error: `User ID: [${req.user.sub}] must match uuid` });
-//     }
-
-//     const { sub: id } = req.user;
-//     const resClient = await clients.getClientById(id);
-//     const client = resClient.rows[0];
-
-//     if (client) {
-//       return await services.topupBalance(client, amount, res);
-//     }
-//     await services.createClient(req, res);
-//     res.status(201).send({ client });
-//   } catch (err) {
-//     res.status(errStatus).json({ error: err.message });
-//   }
-// };
-
-const topupBalanceHandler = async (req, res) => {
+const topupBalanceHandler = async (req, res, next) => {
   const amount = parseFloat(req.body.amount);
   const { id } = req.params;
 
-  let errStatus = 500;
   try {
     if (Number.isNaN(amount) || amount < 0) {
-      errStatus = 400;
+      res.status(400);
       throw new Error('amount is negative or undefined');
     }
-    const result = await services.topupBalance(id, amount);
-    if (result.error) {
-      throw new Error(result.error.message);
-    }
-    res.send({ balance: result.balance });
+    await services.topupBalance(id, amount, res, next);
   } catch (err) {
-    res.status(errStatus).send({ error: err.message });
+    next(err);
   }
 };
 
@@ -57,7 +23,7 @@ const buyPackageHandler = async (req, res) => {
   let errStatus = 400;
   try {
     // buyPackage() - async func, return object
-    const result = await services.buyPackage(req.params.id, req.body);
+    const result = await services.buyPackage(req.params.id, req.body, getToken(req.headers));
     if (result.error) {
       errStatus = result.errStatus;
       throw new Error(result.error.message);
@@ -77,7 +43,7 @@ const getClientInfo = async (req, res) => {
     }
 
     const { id } = req.params;
-    const result = await services.clientInfo(id);
+    const result = await services.clientInfo(id, getToken(req.headers));
 
     if (result.error) {
       throw new Error(result.error.message);

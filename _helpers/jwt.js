@@ -1,5 +1,7 @@
 const expressJwt = require('express-jwt');
 
+const getToken = headers => headers.authorization.split(' ')[1];
+
 const authorize = (roles = []) => {
   const secret = process.env.JWT_SECRET;
 
@@ -30,4 +32,4 @@ const authorize = (roles = []) => {
   ];
 };
 
-module.exports = { authorize };
+module.exports = { authorize, getToken };

@@ -20,11 +20,11 @@ app.use(logger('dev'));
 app.use(cors());
 app.use(express.json());
 
-// global error handler
-app.use(errorHandler);
-
 app.use('/api/v2/clients', clientsRouter);
 app.use('/api/v2/catalog', catalogRouter);
+
+// global error handler
+app.use(errorHandler);
 
 app.use('/', swaggerUi.serve, swaggerUi.setup(clientsApiDoc));
 
