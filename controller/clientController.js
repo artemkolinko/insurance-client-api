@@ -138,7 +138,7 @@ const addClient = async (req, res) => {
 
     await clients.cli.execute(clients.insert(), params, { prepare: true });
 
-    res.status(204).json({ id });
+    res.sendStatus(204);
   } catch (err) {
     res.status(errStatus).json({ error: err.message });
   }
