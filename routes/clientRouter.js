@@ -7,8 +7,8 @@ const Role = require('../_helpers/role');
 
 // /api/v2/clients
 router.route('/')
-  .get(authorize(Role.Admin), errorHandler, controller.getClients);
-// .post(authorize(Role.Admin), errorHandler, controller.addClient);
+  .get(authorize(Role.Admin), errorHandler, controller.getClients)
+  .post(authorize(), errorHandler, controller.addClient);
 
 router.route('/:id')
   .get(authorize(), errorHandler, controller.getClient)
@@ -19,9 +19,13 @@ router
   .route('/:id/buy-package')
   .patch(authorize(), errorHandler, controller.buyPackageHandler);
 
+// router
+//   .route('/topup-balance')
+//   .post(authorize(), errorHandler, controller.topupBalance);
+
 router
-  .route('/topup-balance')
-  .post(authorize(), errorHandler, controller.topupBalance);
+  .route('/:id/topup-balance')
+  .patch(authorize(), errorHandler, controller.topupBalanceHandler);
 
 router
   .route('/:id/info')

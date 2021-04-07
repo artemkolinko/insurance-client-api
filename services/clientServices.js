@@ -2,19 +2,19 @@ const clients = require('../models/Clients');
 const catalog = require('../models/Catalog');
 const { testId } = require('../auxiliary');
 
-const createClient = async (req, res) => {
-  const errStatus = 400;
-  if (!req.body.name) {
-    return res.status(errStatus).json({ error: 'name required' });
-  }
-  const { name, amount } = req.body;
-  if (name.match(/^\d+$/g)) {
-    return res.status(errStatus).send({ error: 'name should be "string"' });
-  }
+// const createClient = async (req, res) => {
+//   const errStatus = 400;
+//   if (!req.body.name) {
+//     return res.status(errStatus).json({ error: 'name required' });
+//   }
+//   const { name, amount } = req.body;
+//   if (name.match(/^\d+$/g)) {
+//     return res.status(errStatus).send({ error: 'name should be "string"' });
+//   }
 
-  const params = [req.user.sub, name, amount];
-  return clients.cli.execute(clients.insert(), params, { prepare: true });
-};
+//   const params = [req.user.sub, name, amount];
+//   return clients.cli.execute(clients.insert(), params, { prepare: true });
+// };
 
 const clientInfo = async (id) => {
   const result = {
@@ -39,25 +39,49 @@ const clientInfo = async (id) => {
   }
 };
 
-const topupBalance = async (client, amount, res) => {
+// const topupBalance = async (client, amount, res) => {
+//   try {
+//     let { balance } = client;
+//     if (!balance) {
+//       balance = amount;
+//     } else { balance = balance + amount; }
+
+//     await clients.updateClient(client.id, balance, 'balance');
+
+//     const resClient = await clients.getClientById(client.id);
+//     const balanceCheck = resClient.rows[0].balance;
+
+//     if (balanceCheck !== balance) {
+//       throw new Error('balance topup rejected');
+//     }
+
+//     res.send({ balance: balanceCheck });
+//   } catch (err) {
+//     res.status(500).send({ error: err.message });
+//   }
+// };
+
+const topupBalance = async (id, amount) => {
+  const result = {
+    balance: null,
+    error: null
+  };
   try {
-    let { balance } = client;
-    if (!balance) {
-      balance = amount;
-    } else { balance = balance + amount; }
-
-    await clients.updateClient(client.id, balance, 'balance');
-
-    const resClient = await clients.getClientById(client.id);
-    const balanceCheck = resClient.rows[0].balance;
-
-    if (balanceCheck !== balance) {
-      throw new Error('balance topup rejected');
+    const result = await clients.getClientById(id);
+    const client = result.rows[0];
+    if (!client) {
+      // How to return 404?
+      result.error = new Error('Client not found');
+      return result;
     }
-
-    res.send({ balance: balanceCheck });
+    let { balance } = client;
+    balance = balance + amount;
+    await clients.updateClient(client.id, balance, 'balance');
+    result.balance = balance;
+    return result;
   } catch (err) {
-    res.status(500).send({ error: err.message });
+    result.error = err;
+    return result;
   }
 };
 
@@ -116,4 +140,9 @@ const buyPackage = async (id, body) => {
   }
 };
 
-module.exports = { createClient, clientInfo, topupBalance, buyPackage };
+module.exports = {
+  // createClient,
+  clientInfo,
+  topupBalance,
+  buyPackage
+};
