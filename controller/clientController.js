@@ -1,24 +1,21 @@
-const { types } = require('cassandra-driver');
+// const { types } = require('cassandra-driver');
 const clients = require('../models/Clients');
 const services = require('../services/clientServices');
+const { testId } = require('../auxiliary');
+const { getToken } = require('../_helpers/jwt');
 
-const topupBalanceHandler = async (req, res) => {
-  const amount = parseInt(req.body.amount);
+const topupBalanceHandler = async (req, res, next) => {
+  const amount = parseFloat(req.body.amount);
   const { id } = req.params;
 
-  let errStatus = 500;
   try {
     if (Number.isNaN(amount) || amount < 0) {
-      errStatus = 400;
+      res.status(400);
       throw new Error('amount is negative or undefined');
     }
-    const result = await services.topupBalance(id, amount);
-    if (result.error) {
-      throw new Error(result.error.message);
-    }
-    res.send({ balance: result.balance });
+    await services.topupBalance(id, amount, res, next);
   } catch (err) {
-    res.status(errStatus).send({ error: err.message });
+    next(err);
   }
 };
 
@@ -26,7 +23,7 @@ const buyPackageHandler = async (req, res) => {
   let errStatus = 400;
   try {
     // buyPackage() - async func, return object
-    const result = await services.buyPackage(req.params.id, req.body);
+    const result = await services.buyPackage(req.params.id, req.body, getToken(req.headers));
     if (result.error) {
       errStatus = result.errStatus;
       throw new Error(result.error.message);
@@ -46,7 +43,7 @@ const getClientInfo = async (req, res) => {
     }
 
     const { id } = req.params;
-    const result = await services.clientInfo(id);
+    const result = await services.clientInfo(id, getToken(req.headers));
 
     if (result.error) {
       throw new Error(result.error.message);
@@ -75,20 +72,41 @@ const getClients = (req, res) => {
   }
 };
 
-const addClient = (req, res) => {
-  const id = types.timeuuid();
+const addClient = async (req, res) => {
+  let errStatus = 500;
   const { name } = req.body;
+  // get id from jwt
+  const { sub: id } = req.user;
+
   try {
-    if (!name) { throw new Error('Parametr "name" is null or not exist'); }
-    if (name.match(/^\d+$/g)) { throw new Error('Parametr "name" should be "string"'); }
+    if (!id || !testId(id)) {
+      return res.status(errStatus).json({ error: `User ID: [${id}] must match uuid` });
+    }
+
+    // if client exist
+    const resClient = await clients.getClientById(id);
+    const client = resClient.rows[0];
+    if (client) {
+      errStatus = 409;
+      throw new Error('Client already exist');
+    }
+
+    // check client name
+    if (!name) {
+      throw new Error('Parametr "name" is null or not exist');
+    }
+    if (name.match(/^\d+$/g)) {
+      throw new Error('Parametr "name" should be "string"');
+    }
+
     const balance = 0;
     const params = [id, name, balance];
-    clients.cli
-      .execute(clients.insert(), params, { prepare: true })
-      .then(() => res.status(201).json({ id }))
-      .catch((err) => res.status(500).json({ err }));
+
+    await clients.cli.execute(clients.insert(), params, { prepare: true });
+
+    res.sendStatus(204);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(errStatus).json({ error: err.message });
   }
 };
 
@@ -152,6 +170,7 @@ const deleteClient = (req, res) => {
 
 module.exports = {
   getClientInfo,
+  // topupBalance,
   topupBalanceHandler,
   buyPackageHandler,
   getClients,

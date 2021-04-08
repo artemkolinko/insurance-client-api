@@ -2,19 +2,20 @@ const clients = require('../models/Clients');
 const catalog = require('../models/Catalog');
 const { testId } = require('../auxiliary');
 
-const clientInfo = async (id) => {
+const clientInfo = async (id, token) => {
   const result = {
     data: null,
     error: null
   };
   try {
     const resClient = await clients.getClientById(id);
-    const client = await resClient.rows[0];
+    const client = resClient.rows[0];
+
     if (!client.package) {
       result.data = client;
       return result;
     }
-    const response = await catalog.getPackageInfo(client.package);
+    const response = await catalog.getPackageInfo(client.package, token);
     const packageInfo = await response.data;
     client.package = packageInfo;
     result.data = client;
@@ -25,26 +26,24 @@ const clientInfo = async (id) => {
   }
 };
 
-const topupBalance = async (id, amount) => {
-  const result = {
-    balance: null,
-    error: null
-  };
+const topupBalance = async (id, amount, res, next) => {
   try {
     const result = await clients.getClientById(id);
     const client = result.rows[0];
+    if (!client) {
+      res.status(404);
+      throw new Error('Client not found');
+    }
     let { balance } = client;
     balance = balance + amount;
     await clients.updateClient(client.id, balance, 'balance');
-    result.balance = balance;
-    return result;
+    res.send({ balance });
   } catch (err) {
-    result.error = err;
-    return result;
+    next(err);
   }
 };
 
-const buyPackage = async (id, body) => {
+const buyPackage = async (id, body, token) => {
   const result = {
     packageId: null,
     error: null,
@@ -72,7 +71,7 @@ const buyPackage = async (id, body) => {
     const resClient = await clients.getClientById(id);
     const client = resClient.rows[0];
 
-    const resCost = await catalog.getProductsCost(productIds);
+    const resCost = await catalog.getProductsCost(productIds, token);
     const dataCost = +resCost.data;
 
     const balance = client.balance - dataCost;
@@ -82,11 +81,16 @@ const buyPackage = async (id, body) => {
     }
 
     // POST to Java API
-    const resPack = await catalog.createPackage({
-      description,
-      name,
-      productIds
-    });
+    const resPack = await catalog.createPackage(
+      {
+        description,
+        name,
+        productIds
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
 
     const dataPack = resPack.data;
     result.packageId = dataPack.id;
@@ -99,4 +103,8 @@ const buyPackage = async (id, body) => {
   }
 };
 
-module.exports = { clientInfo, topupBalance, buyPackage };
+module.exports = {
+  clientInfo,
+  topupBalance,
+  buyPackage
+};

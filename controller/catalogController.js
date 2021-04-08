@@ -10,13 +10,13 @@ const getProducts = async (req, res) => {
   }
 };
 
-const getPackagesBase = async (_, res) => {
+const getPackagesBase = async (_, res, next) => {
   try {
     const response = await catalog.getPackagesBaseAll();
     const data = await response.data;
     res.send(data);
   } catch (err) {
-    res.status(500).send(err);
+    next(err);
   }
 };
 
