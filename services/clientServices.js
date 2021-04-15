@@ -87,9 +87,7 @@ const buyPackage = async (id, body, token) => {
         name,
         productIds
       },
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
+      token
     );
 
     const dataPack = resPack.data;
