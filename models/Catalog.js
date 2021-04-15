@@ -14,12 +14,10 @@ const getProductsCost = (array, token) => {
   array.forEach((element) => {
     queryStr += 'ids=' + element + '&';
   });
-  return axiosGet(entity.cost + queryStr, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  return axiosGet(entity.cost + queryStr, token);
 };
 
-const createPackage = (options, token) => axiosPost(entity.packages, options, { headers: { Authorization: `Bearer ${token}` } });
+const createPackage = (options, token) => axiosPost(entity.packages, options, token);
 const getPackagesBaseAll = () => axiosGet(entity.basePackages);
 
 const getProductsAll = (req) => {
@@ -30,9 +28,7 @@ const getProductsAll = (req) => {
 };
 
 const getPackageInfo = (id, token) => {
-  return axiosGet(`${entity.packages}/${id}/info`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  return axiosGet(`${entity.packages}/${id}/info`, token);
 };
 
 module.exports = {

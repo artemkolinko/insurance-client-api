@@ -3,7 +3,7 @@ const expressJwt = require('express-jwt');
 const getToken = headers => headers.authorization.split(' ')[1];
 
 const authorize = (roles = []) => {
-  const secret = process.env.JWT_SECRET;
+  const publicKey = Buffer.from(process.env.PUBLIC_KEY, 'base64');
 
   // roles param can be a single role string (e.g. Role.User or 'User')
   // or an array of roles (e.g. [Role.Admin, Role.User] or ['Admin', 'User'])
@@ -15,8 +15,8 @@ const authorize = (roles = []) => {
   return [
     // authenticate JWT token and attach user to requset object (req.user)
     expressJwt({
-      secret,
-      algorithms: ['HS256']
+      secret: publicKey,
+      algorithms: ['sha1', 'RS256', 'HS256']
     }),
 
     // authorize based on user role

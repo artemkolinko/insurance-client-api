@@ -2,7 +2,11 @@ const axios = require('axios');
 
 const baseUrl = process.env.CATALOG_URL;
 
-const axiosGet = (entity, headers = {}) => axios.get(baseUrl + entity, headers);
-const axiosPost = (entity, options = {}, headers = {}) => axios.post(baseUrl + entity, options, headers);
+const axiosGet = (entity, token) => axios.get(baseUrl + entity, { headers: { Authorization: `Bearer ${token}` } });
+const axiosPost = (entity, options = {}, token) => {
+  return axios.post(baseUrl + entity, options, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+};
 
 module.exports = { axiosGet, axiosPost };
