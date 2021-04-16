@@ -46,6 +46,7 @@ const getClientInfo = async (req, res) => {
     const result = await services.clientInfo(id, getToken(req.headers));
 
     if (result.error) {
+      errStatus = 404;
       throw new Error(result.error.message);
     }
 
