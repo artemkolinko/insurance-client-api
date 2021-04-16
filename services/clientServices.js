@@ -11,6 +11,11 @@ const clientInfo = async (id, token) => {
     const resClient = await clients.getClientById(id);
     const client = resClient.rows[0];
 
+    if (!client) {
+      result.error = new Error('Client does not exist');
+      return result;
+    }
+
     if (!client.package) {
       result.data = client;
       return result;
